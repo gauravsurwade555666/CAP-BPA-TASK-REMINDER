@@ -13,8 +13,9 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "^2",
-    "@cap-js/cds-types": "^0.13.0"
+    "@cap-js/cds-types": "^0.13.0",
+   
+    "@sap/cds-dk": ">=8"
   },
   "scripts": {
     "start": "cds-serve"
