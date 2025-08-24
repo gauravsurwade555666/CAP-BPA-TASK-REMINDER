@@ -2,7 +2,7 @@
   "name": "CAP-BPA-TASK-REMINDER",
   "version": "1.0.0",
   "description": "A simple CAP project.",
-  "repository": "<Add your repository here>",
+  "repository": "https://github.com/gauravsurwade555666/CAP-BPA-TASK-REMINDER.git",
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
