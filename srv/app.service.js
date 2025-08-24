@@ -36,7 +36,7 @@ class CAPBPAReminder extends cds.ApplicationService {
 
         });
 
-        this.on("sendReminderEmail", async (req) => {
+        this.on("triggerReminderEmailJob", async (req) => {
             const { res } = req.http;
 
             res.statusCode = 202;
@@ -47,17 +47,17 @@ class CAPBPAReminder extends cds.ApplicationService {
 
         });
 
-        this.after("sendReminderEmail", async (data, req) => {
+        this.after("triggerReminderEmailJob", async (data, req) => {
             cds.spawn(async (params) => {
                 try {
-                    const aDefinitionIds = req.data.Payload.definitionIdList;
+                    const aDefinitionIds = req.data.definitionIdList;
                     for (const oWFId of aDefinitionIds) {
                         if (oWFId) {
                             //get all task from bpa
                             const sURL = `/public/workflow/rest/v1/task-instances?workflowDefinitionId=${oWFId}&status=READY&$expand=attributes`;
                             const aTaskList = await oApiUtil.readDataFromBPA(sURL);
-                            for (const oTask of aTaskList) {
-                                if (oTask.attributes >= 2) {
+                            for (const oTask of aTaskList.data) {
+                                if (oTask.attributes.length >= 2) {
                                     const cnt = oTask.attributes.filter((oItem) => oItem.id === "count");
                                     const unit = oTask.attributes.filter((oItem) => oItem.id === "unit");
 
@@ -72,8 +72,8 @@ class CAPBPAReminder extends cds.ApplicationService {
                                     diffMs -= hours * (1000 * 60 * 60);
                                     const minutes = Math.floor(diffMs / (1000 * 60));
                                     console.log(`${days} days, ${hours} hours, ${minutes} minutes have passed.`);
-                                    if (unit.value === "HOURS") {
-                                        if (hours % cnt === 0 && hours >= cnt) {
+                                    if (unit[0].value === "HOURS") {
+                                        if (hours % cnt[0].value === 0 && hours >= cnt[0].value) {
                                             let dueDate = "";
                                             if (oTask.dueDate) {
                                                 let dDueDate = new Date(dueDate);
@@ -94,9 +94,9 @@ class CAPBPAReminder extends cds.ApplicationService {
                                             let Subject = oTask.subject
                                             //send email
 
-                                            this.sendReminderEmail(To, Subject, "Gaurav", dueDate)
+                                            await this.sendReminderEmail(To, Subject, "Gaurav", dueDate);
                                         }
-                                    } else if (unit.value === "DAYS") {
+                                    } else if (unit[0].value === "DAYS") {
 
                                     }
 

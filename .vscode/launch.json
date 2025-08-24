@@ -15,6 +15,14 @@
       "skipFiles": [
         "<node_internals>/**"
       ]
+    },
+    {
+      "name": "SSH",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/home/vcap/app"
     }
   ]
 }
