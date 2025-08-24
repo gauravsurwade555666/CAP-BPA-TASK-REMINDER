@@ -46,14 +46,10 @@
       "uaa": {
         "kind": "xsuaa"
       },
-      "[development]": {
+      "[production]": {
         "auth": {
-          "strategy": "mock",
-          "users": {
-            "read": {
-              "password": "read",
-              "roles": []
-            }
+          "strategy": "xsuaa",
+          "users": {          
           }
         }
       }

@@ -3,7 +3,11 @@
   "tenant-mode": "dedicated",
   "description": "Security profile of called application",
   "scopes": [
-   
+     {
+      "name": "$XSAPPNAME.JOBSCHEDULER",
+      "description": "Job Scheduler Scope",
+      "grant-as-authority-to-apps": ["jobscheduler"]
+    }
   ],
   "role-templates": [
    
