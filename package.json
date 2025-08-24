@@ -12,7 +12,7 @@
     "@sap/cds": "^9.2.1",
     "@sap/jobs-client": "1.8.5",
     "@sap/textbundle": "4.2.0",
-    "@sap/xssec": "3.6.0",
+    "@sap/xssec": "^4.9.1",
     "axios": "1.6.0",
     "cfenv": "1.2.4",
     "express": "4.19.2",
@@ -22,9 +22,12 @@
   },
   "devDependencies": {
     "@cap-js/sqlite": "1.10.0",
-    "@sap/cds-dk": "7.3.2",
+    "@sap/cds-dk": "9.2.1",
     "eslint": "8.48.0",
     "rimraf": "5.0.1"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "scripts": {
     "start": "cds-serve"
