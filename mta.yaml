@@ -1,0 +1,67 @@
+_schema-version: 3.3.0
+ID: CAP-BPA-TASK-REMINDER
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: CAP-BPA-TASK-REMINDER-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: CAP-BPA-TASK-REMINDER-destination-service
+  - name: uaa_CAP-BPA-TASK-REMINDER
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    instances: 1
+  build-parameters:
+    builder: npm-ci
+- name: CAP-BPA-TASK-REMINDER-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: CAP-BPA-TASK-REMINDER-destination-service
+    parameters:
+      content-target: true
+  - name: uaa_CAP-BPA-TASK-REMINDER
+    parameters:
+      service-key:
+        name: uaa_CAP-BPA-TASK-REMINDER-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Authentication: OAuth2UserTokenExchange
+          Name: sap_trial_bpa_reminder_uaa_CAP_BPA_TASK_REMINDER
+          ServiceInstanceName: CAP-BPA-TASK-REMINDER-xsuaa-service
+          ServiceKeyName: uaa_CAP-BPA-TASK-REMINDER-key
+          sap.cloud.service: sap.trial.bpa.reminder
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+resources:
+- name: CAP-BPA-TASK-REMINDER-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      version: 1.0.0
+    service: destination
+    service-name: CAP-BPA-TASK-REMINDER-destination-service
+    service-plan: lite
+- name: uaa_CAP-BPA-TASK-REMINDER
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: CAP-BPA-TASK-REMINDER-xsuaa-service
+    service-plan: application
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npm ci
+    - npx cds build --production
