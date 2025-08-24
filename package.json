@@ -30,7 +30,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "cds-serve"
+    "start": "cds-serve",
+    "deploy":"cf deploy mta_archives/CAP-BPA-TASK-REMINDER_1.0.0.mtar"
   },
   "cds": {
     "cov2ap": {
@@ -39,6 +40,17 @@
     "requires": {
       "uaa": {
         "kind": "xsuaa"
+      },
+      "[development]": {
+        "auth": {
+          "strategy": "mock",
+          "users": {
+            "read": {
+              "password": "read",
+              "roles": []
+            }
+          }
+        }
       }
     }
   }
