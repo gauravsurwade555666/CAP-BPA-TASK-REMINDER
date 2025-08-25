@@ -1,6 +1,8 @@
 const cds = require('@sap/cds');
 const oApiUtil = require("./helper/apiUtil");
 const SapCfMailer = require("sap-cf-mailer").default;
+const JobSchedulerClient = require("@sap/jobs-client");
+
 
 class CAPBPAReminder extends cds.ApplicationService {
     async init() {
@@ -50,6 +52,7 @@ class CAPBPAReminder extends cds.ApplicationService {
         this.after("triggerReminderEmailJob", async (data, req) => {
             cds.spawn(async (params) => {
                 try {
+                    const aTaskEmailSend = [];
                     const aDefinitionIds = req.data.definitionIdList;
                     for (const oWFId of aDefinitionIds) {
                         if (oWFId) {
@@ -95,6 +98,7 @@ class CAPBPAReminder extends cds.ApplicationService {
                                             //send email
 
                                             await this.sendReminderEmail(To, Subject, "Gaurav", dueDate);
+                                            aTaskEmailSend.push(oTask.id)
                                         }
                                     } else if (unit[0].value === "DAYS") {
 
@@ -106,11 +110,10 @@ class CAPBPAReminder extends cds.ApplicationService {
                         }
                     }
 
+                    this.updateJobRunLog(true, req, aTaskEmailSend);
+
                 } catch (error) {
-                    // req.error({
-                    //     code: 500,
-                    //     message: error.message ? error.message : "Internal Server Error"
-                    // });
+                    this.updateJobRunLog(false, req, aTaskEmailSend,);
                 }
             });
         })
@@ -186,6 +189,56 @@ class CAPBPAReminder extends cds.ApplicationService {
 `;
             return emailBody;
         }
+
+
+        this.updateJobRunLog = async (bStatus, req, aTaskList) => {
+            // Access the incoming request headers
+            const headers = req.headers;
+            let oPayload = {};
+
+            // Retrieve the job run ID from the 'x-sap-job-id' header
+            // "x-sap-job-id": "4414965",
+            //     "x-sap-job-run-id": "32f03a40-bed5-414c-ae01-f70bb2aa10cf",
+            //         "x-sap-job-schedule-id": "e7c436fd-df4f-4ede-935d-11d4d05a6029",
+            if (headers["x-sap-job-id"] && headers["x-sap-job-run-id"] && headers["x-sap-job-schedule-id"]) {
+                oPayload = {
+                    jobId: headers["x-sap-job-id"],
+                    scheduleId: headers["x-sap-job-schedule-id"],
+                    runId: headers["x-sap-job-run-id"],
+                    data: {
+                        "success": bStatus,
+                        "message": bStatus ? "Success" : "Error"
+                    }
+                }
+                const oResponse = await this.updateJobRunLogs(oPayload);
+            }
+        }
+
+
+
+
+
+
+
+        this.updateJobRunLogs = async (req) => new Promise(async (resolve, reject) => {
+
+            const scheduler = new JobSchedulerClient.Scheduler();
+
+            try {
+                scheduler.updateJobRunLog(req, (err, result) => {
+
+                    if (err) {
+                        err.flag = "E";
+                        resolve(JSON.stringify(err));
+                    } else {
+                        result.flag = "S";
+                        resolve(JSON.stringify(result));
+                    }
+                });
+            } catch (oErr) {
+                resolve(JSON.stringify(oErr.message));
+            }
+        });
 
     }
 }
