@@ -39,33 +39,45 @@ class CAPBPAReminder extends cds.ApplicationService {
         });
 
         this.on("triggerReminderEmailJob", async (req) => {
+
+            // Sending 202 Accepted Status code to client so that client won't need to wait until CAP is finished with sending all the emails.
+            // Asynchronous Bachground Job will be triggered in After Event.
             const { res } = req.http;
-
             res.statusCode = 202;
-
             return {
                 message: "Request Accepted. Job is in progress"
             };
 
         });
 
+        //After event handler for background job
         this.after("triggerReminderEmailJob", async (data, req) => {
+            //asynchronous operation for background job
             cds.spawn(async (params) => {
                 try {
                     const aTaskEmailSend = [];
+
+                    //Fetching all the WF Definition IDs from response body.
                     const aDefinitionIds = req.data.definitionIdList;
+
+                    //Looping over each WF Definition ID
                     for (const oWFId of aDefinitionIds) {
                         if (oWFId) {
-                            //get all task from bpa
+                            //Get BPA API to get all the Open Approval Task Details List with Task attributes from the given WF Instance ID  
                             const sURL = `/public/workflow/rest/v1/task-instances?workflowDefinitionId=${oWFId}&status=READY&$expand=attributes`;
                             const aTaskList = await oApiUtil.readDataFromBPA(sURL);
+
+                            //Looping over Task List
                             for (const oTask of aTaskList.data) {
+
+                                //As per the desing, 2 attributes should be present in the Task, so checking the same
                                 if (oTask.attributes.length >= 2) {
+
+                                    //fetching the required aatributes
                                     const cnt = oTask.attributes.filter((oItem) => oItem.id === "count");
                                     const unit = oTask.attributes.filter((oItem) => oItem.id === "unit");
 
-                                    //calculting time lapsed for task
-                                    // const givenDate = new Date("2025-08-24T11:09:59.797Z");
+                                    //calculting time lapsed in days, hours & minutes for the given task
                                     const givenDate = new Date(oTask.createdAt);
                                     const now = new Date();
                                     let diffMs = now - givenDate;
@@ -75,13 +87,16 @@ class CAPBPAReminder extends cds.ApplicationService {
                                     diffMs -= hours * (1000 * 60 * 60);
                                     const minutes = Math.floor(diffMs / (1000 * 60));
                                     console.log(`${days} days, ${hours} hours, ${minutes} minutes have passed.`);
+
+                                    //If Unit is HOUR then compare lapsed time with the time configuration set in the attributes 
                                     if (unit[0].value === "HOURS") {
                                         if (hours % cnt[0].value === 0 && hours >= cnt[0].value) {
+
+                                            //DueDate is optional for task. 
+                                            // Checking if Due Date is present then formatting in user understanble format
                                             let dueDate = "";
                                             if (oTask.dueDate) {
                                                 let dDueDate = new Date(dueDate);
-
-                                                // Example: "August 27, 2025, 12:17 PM"
                                                 const options = {
                                                     year: 'numeric',
                                                     month: 'long',
@@ -93,15 +108,21 @@ class CAPBPAReminder extends cds.ApplicationService {
 
                                                 dueDate = dDueDate.toLocaleString('en-US', options);
                                             }
+
+                                            //fetching recipient users i.e. approvers responsible for the task
+                                            //reducing array to comma separated single string
                                             let To = oTask.recipientUsers.join(",");
                                             let Subject = oTask.subject
-                                            //send email
 
+                                            //calling reusable function to send email
+                                            //BTP Trial Account has only one user named "Gaurav"
                                             await this.sendReminderEmail(To, Subject, "Gaurav", dueDate);
+
+                                            //saving the TaskID in array for which email has been sent
                                             aTaskEmailSend.push(oTask.id)
                                         }
                                     } else if (unit[0].value === "DAYS") {
-
+                                        // you can implement the logic for DAYS Unit
                                     }
 
                                 }
@@ -110,6 +131,7 @@ class CAPBPAReminder extends cds.ApplicationService {
                         }
                     }
 
+                    // Updating the JOB Run Logs in BTP Job Scheduler.
                     this.updateJobRunLog(true, req, aTaskEmailSend);
 
                 } catch (error) {
@@ -117,7 +139,6 @@ class CAPBPAReminder extends cds.ApplicationService {
                 }
             });
         })
-
 
         this.sendReminderEmail = async (To, Subject, Name, DueDate) => {
             try {
@@ -190,52 +211,24 @@ class CAPBPAReminder extends cds.ApplicationService {
             return emailBody;
         }
 
-
         this.updateJobRunLog = async (bStatus, req, aTaskList) => {
             // Access the incoming request headers
             const headers = req.headers;
             let oPayload = {};
 
             if (headers["x-sap-job-id"] && headers["x-sap-job-run-id"] && headers["x-sap-job-schedule-id"]) {
-                // oPayload = {
-                //     jobId: headers["x-sap-job-id"],
-                //     scheduleId: headers["x-sap-job-schedule-id"],
-                //     runId: headers["x-sap-job-run-id"],
-                //     data: {
-                //         "success": bStatus,
-                //         "message": bStatus ? "Success" : "Error"
-                //     }
-                // }
                 oPayload = {
                     "success": bStatus,
                     "message": bStatus ? "Success" : "Error"
                 }
-                
+                //
+                // You can externalize this URL using environment Variables
                 const URL = `https://jobscheduler-rest.cfapps.us10.hana.ondemand.com/scheduler/jobs/${headers["x-sap-job-id"]}/schedules/${headers["x-sap-job-schedule-id"]}/runs/${headers["x-sap-job-run-id"]}`;
 
                 const oResponse = await oApiUtil.updateJobSchedulerRunLog(URL,oPayload);
                 console.log(oResponse);
             }
         }
-
-
-        this.updateJobRunLogs = async (req) => new Promise(async (resolve, reject) => {
-
-            try {
-                const scheduler = new JobSchedulerClient.Scheduler();
-                scheduler.updateJobRunLog(req, (err, result) => {
-                    if (err) {
-                        err.flag = "E";
-                        resolve(JSON.stringify(err));
-                    } else {
-                        result.flag = "S";
-                        resolve(JSON.stringify(result));
-                    }
-                });
-            } catch (oErr) {
-                resolve(JSON.stringify(oErr.message));
-            }
-        });
 
     }
 }
