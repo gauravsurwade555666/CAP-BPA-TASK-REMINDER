@@ -31,7 +31,7 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "deploy":"cf deploy mta_archives/CAP-BPA-TASK-REMINDER_1.0.0.mtar",
+    "deploy":"cf deploy mta_archives/CAP-BPA-TASK-REMINDER_1.0.0.mtar --no-restart-subscribed-apps",
        "enablessh": "cf enable-ssh CAP-BPA-TASK-REMINDER-srv",
         "restart": "cf restart CAP-BPA-TASK-REMINDER-srv",
         "ssh": "cf ssh CAP-BPA-TASK-REMINDER-srv",

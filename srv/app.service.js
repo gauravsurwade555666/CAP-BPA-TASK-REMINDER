@@ -196,37 +196,34 @@ class CAPBPAReminder extends cds.ApplicationService {
             const headers = req.headers;
             let oPayload = {};
 
-            // Retrieve the job run ID from the 'x-sap-job-id' header
-            // "x-sap-job-id": "4414965",
-            //     "x-sap-job-run-id": "32f03a40-bed5-414c-ae01-f70bb2aa10cf",
-            //         "x-sap-job-schedule-id": "e7c436fd-df4f-4ede-935d-11d4d05a6029",
             if (headers["x-sap-job-id"] && headers["x-sap-job-run-id"] && headers["x-sap-job-schedule-id"]) {
+                // oPayload = {
+                //     jobId: headers["x-sap-job-id"],
+                //     scheduleId: headers["x-sap-job-schedule-id"],
+                //     runId: headers["x-sap-job-run-id"],
+                //     data: {
+                //         "success": bStatus,
+                //         "message": bStatus ? "Success" : "Error"
+                //     }
+                // }
                 oPayload = {
-                    jobId: headers["x-sap-job-id"],
-                    scheduleId: headers["x-sap-job-schedule-id"],
-                    runId: headers["x-sap-job-run-id"],
-                    data: {
-                        "success": bStatus,
-                        "message": bStatus ? "Success" : "Error"
-                    }
+                    "success": bStatus,
+                    "message": bStatus ? "Success" : "Error"
                 }
-                const oResponse = await this.updateJobRunLogs(oPayload);
+                
+                const URL = `https://jobscheduler-rest.cfapps.us10.hana.ondemand.com/scheduler/jobs/${headers["x-sap-job-id"]}/schedules/${headers["x-sap-job-schedule-id"]}/runs/${headers["x-sap-job-run-id"]}`;
+
+                const oResponse = await oApiUtil.updateJobSchedulerRunLog(URL,oPayload);
+                console.log(oResponse);
             }
         }
 
 
-
-
-
-
-
         this.updateJobRunLogs = async (req) => new Promise(async (resolve, reject) => {
 
-            const scheduler = new JobSchedulerClient.Scheduler();
-
             try {
+                const scheduler = new JobSchedulerClient.Scheduler();
                 scheduler.updateJobRunLog(req, (err, result) => {
-
                     if (err) {
                         err.flag = "E";
                         resolve(JSON.stringify(err));

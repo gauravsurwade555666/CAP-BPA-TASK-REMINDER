@@ -4,7 +4,7 @@ const oCfEnv = require("cfenv");
 const oLog = cds.log("ApiUtil"); // Add resource ApplicationLogs to service module
 
 const oApiUtil = {
- 
+
     getAccessTokenBPA: async () => {
         const sClientID = process.env.BPA_CLIENTID;
         const sClientSecret = process.env.BPA_CLIENTSECRET;
@@ -41,7 +41,7 @@ const oApiUtil = {
     readDataFromBPA: async (sURL) => {
 
         try {
-             const sBPAEndpoint = process.env.BPA_ENDPOINT_URL;
+            const sBPAEndpoint = process.env.BPA_ENDPOINT_URL;
             const sAccessToken = await oApiUtil.getAccessTokenBPA();
             const sBearertoken = `Bearer ${sAccessToken}`;
             const oHttpheaders = {
@@ -69,8 +69,27 @@ const oApiUtil = {
             return { ERROR: oError?.message, CAUSE: oError?.cause };
         }
 
-    }
+    },
    
+    updateJobSchedulerRunLog: async (sURL, data) => {
+        // const sEndPoint = process.env.JOB_SCHED_END + sURL;
+        const sClientID = process.env.JOB_SCHED_ID;
+        const sClientSecret = process.env.JOB_SCHED_SECRET;
+        const oResponse = await oAxios({
+            method: "PUT",
+            url: sURL,
+            data: data,
+            headers: {
+                "content-type": "application/json"
+            },
+            auth: {
+                username: sClientID,
+                password: sClientSecret
+            }
+        });
+        return oResponse;
+    }
+
 
 };
 
