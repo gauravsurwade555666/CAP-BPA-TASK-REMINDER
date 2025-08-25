@@ -7,3 +7,8 @@ Deploy CAP the application with XSUAA service instance
 Go to Cockpit -> Instances -> Bind Job Scheduler Instance to CAP app
 Open job Scheduler dashboard and create jobs
 
+
+
+
+# Open Points
+find Cleaner way to add HTML Body in Email.

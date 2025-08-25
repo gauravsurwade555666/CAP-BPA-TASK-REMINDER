@@ -2,7 +2,9 @@ const cds = require('@sap/cds');
 const oApiUtil = require("./helper/apiUtil");
 const SapCfMailer = require("sap-cf-mailer").default;
 const JobSchedulerClient = require("@sap/jobs-client");
-
+const ReminderEmailTemplate = require("./helper/apiUtil");
+const fs = require('fs');
+const path = require('path');
 
 class CAPBPAReminder extends cds.ApplicationService {
     async init() {
@@ -11,7 +13,10 @@ class CAPBPAReminder extends cds.ApplicationService {
             try {
 
                 const transporter = new SapCfMailer("GmailSMTP"); // Match your destination
-                const html = this.getHTMLBody();
+                // const html = this.getHTMLBody();
+                const htmlPath = path.join(__dirname, './emailTemplate/ReminderEmail.html');
+                const html = fs.readFileSync(htmlPath, 'utf-8');
+
                 const result = await transporter.sendMail({
 
                     to: "gsurwade@deloitte.com", //to list separated by comma
@@ -144,7 +149,9 @@ class CAPBPAReminder extends cds.ApplicationService {
             try {
 
                 const transporter = new SapCfMailer("GmailSMTP"); // Match your destination
-                let htmlBody = this.getHTMLBody();
+                // let htmlBody = this.getHTMLBody();
+                const htmlPath = path.join(__dirname, './emailTemplate/ReminderEmail.html');
+                const htmlBody = fs.readFileSync(htmlPath, 'utf-8');
                 htmlBody = htmlBody.replace("#[Name]", Name)
                 htmlBody = htmlBody.replace("#[Due Date]", DueDate ? DueDate : "No Due Date")
                 const result = await transporter.sendMail({
@@ -172,9 +179,7 @@ class CAPBPAReminder extends cds.ApplicationService {
             }
         }
         this.getHTMLBody = () => {
-            const emailBody =
-                `
-<!DOCTYPE html>
+            const emailBody = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -212,20 +217,23 @@ class CAPBPAReminder extends cds.ApplicationService {
         }
 
         this.updateJobRunLog = async (bStatus, req, aTaskList) => {
-            // Access the incoming request headers
+            // Fetching headers from Request
             const headers = req.headers;
             let oPayload = {};
 
             if (headers["x-sap-job-id"] && headers["x-sap-job-run-id"] && headers["x-sap-job-schedule-id"]) {
+                //preapring payload to update status and message in BTP Job Scheduler Run logs
                 oPayload = {
                     "success": bStatus,
                     "message": bStatus ? "Success" : "Error"
                 }
-                //
+
+                //Preparing the URL to update job run log.
                 // You can externalize this URL using environment Variables
                 const URL = `https://jobscheduler-rest.cfapps.us10.hana.ondemand.com/scheduler/jobs/${headers["x-sap-job-id"]}/schedules/${headers["x-sap-job-schedule-id"]}/runs/${headers["x-sap-job-run-id"]}`;
 
-                const oResponse = await oApiUtil.updateJobSchedulerRunLog(URL,oPayload);
+                //Calling a reusable utility function to update Job Run logs
+                const oResponse = await oApiUtil.updateJobSchedulerRunLog(URL, oPayload);
                 console.log(oResponse);
             }
         }
