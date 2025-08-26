@@ -40,13 +40,15 @@ class CAPBPAReminder extends cds.ApplicationService {
             }
 
         });
-
+        //On event handler listens for the "triggerReminderEmailJob" event
         this.on("triggerReminderEmailJob", async (req) => {
 
-            // Sending 202 Accepted Status code to client so that client won't need to wait until CAP is finished with sending all the emails.
-            // Asynchronous Bachground Job will be triggered in After Event.
+            // Set the HTTP status code to 202 (Accepted) to inform the client
+            // that the request has been received and will be processed asynchronously.
+            // This allows the client to continue without waiting for the background job to finish.
             const { res } = req.http;
             res.statusCode = 202;
+            // Return a message indicating that the job is in progress
             return {
                 message: "Request Accepted. Job is in progress"
             };
@@ -55,7 +57,7 @@ class CAPBPAReminder extends cds.ApplicationService {
 
         //After event handler for background job
         this.after("triggerReminderEmailJob", async (data, req) => {
-            //asynchronous operation for background job
+            //asynchronous operation 
             cds.spawn(async (params) => {
                 try {
                     const aTaskEmailSend = [];
