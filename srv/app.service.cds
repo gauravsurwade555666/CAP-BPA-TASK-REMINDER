@@ -1,6 +1,6 @@
 
 service CAPBPAReminder {
-    //
+    
     action sendMail()      returns String;
 
     type Payload {

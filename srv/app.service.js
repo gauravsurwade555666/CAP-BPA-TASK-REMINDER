@@ -1,8 +1,6 @@
 const cds = require('@sap/cds');
 const oApiUtil = require("./helper/apiUtil");
 const SapCfMailer = require("sap-cf-mailer").default;
-const JobSchedulerClient = require("@sap/jobs-client");
-const ReminderEmailTemplate = require("./helper/apiUtil");
 const fs = require('fs');
 const path = require('path');
 
@@ -13,7 +11,7 @@ class CAPBPAReminder extends cds.ApplicationService {
             try {
 
                 const transporter = new SapCfMailer("GmailSMTP"); // Match your destination
-                // const html = this.getHTMLBody();
+                
                 const htmlPath = path.join(__dirname, './emailTemplate/ReminderEmail.html');
                 const html = fs.readFileSync(htmlPath, 'utf-8');
 
@@ -68,7 +66,7 @@ class CAPBPAReminder extends cds.ApplicationService {
                     //Looping over each WF Definition ID
                     for (const oWFId of aDefinitionIds) {
                         if (oWFId) {
-                            //Get BPA API to get all the Open Approval Task Details List with Task attributes from the given WF Instance ID  
+                            //Call BPA API to get all the Open Approval Task Details List with Task attributes from the given WF Instance ID  
                             const sURL = `/public/workflow/rest/v1/task-instances?workflowDefinitionId=${oWFId}&status=READY&$expand=attributes`;
                             const aTaskList = await oApiUtil.readDataFromBPA(sURL);
 
@@ -101,7 +99,7 @@ class CAPBPAReminder extends cds.ApplicationService {
                                             // Checking if Due Date is present then formatting in user understanble format
                                             let dueDate = "";
                                             if (oTask.dueDate) {
-                                                let dDueDate = new Date(dueDate);
+                                                let dDueDate = new Date(oTask.dueDate);
                                                 const options = {
                                                     year: 'numeric',
                                                     month: 'long',
@@ -145,97 +143,68 @@ class CAPBPAReminder extends cds.ApplicationService {
             });
         })
 
+        // Define an asynchronous function to send a reminder email
         this.sendReminderEmail = async (To, Subject, Name, DueDate) => {
             try {
-
-                const transporter = new SapCfMailer("GmailSMTP"); // Match your destination
-                // let htmlBody = this.getHTMLBody();
+                // Create a transporter object using SapCfMailer with the BTP Destination name "GmailSMTP"
+                // This transporter will be used to send emails via the configured SMTP server
+                const transporter = new SapCfMailer("GmailSMTP"); 
+               
+                // Build the path to the HTML email template file
                 const htmlPath = path.join(__dirname, './emailTemplate/ReminderEmail.html');
-                const htmlBody = fs.readFileSync(htmlPath, 'utf-8');
+                // Read the HTML template file content as a string
+                let htmlBody = fs.readFileSync(htmlPath, 'utf-8');
+
+                // Replace placeholder #[Name] in the template with the actual recipient's name
                 htmlBody = htmlBody.replace("#[Name]", Name)
+                // Replace placeholder #[Due Date] with the actual due date or "No Due Date" if not provided
                 htmlBody = htmlBody.replace("#[Due Date]", DueDate ? DueDate : "No Due Date")
+
+                // Send the email using the transporter object
                 const result = await transporter.sendMail({
-
                     to: To, //to list separated by comma
-
                     cc: "", //cc list separated by comma
-
                     subject: Subject,
-
                     html: htmlBody,
-
                     attachments: []
-
                 });
-
+                // Return a success message if the email was sent successfully
                 return `Email sent successfully`;
 
             } catch (error) {
-
+                // Log the error to the console for debugging
                 console.error('Error sending email:', error);
-
-                return `Error sending email: ${error.message}`;
-
+                // throw an error message with the error details
+                throw new Error(`Error sending email: ${error.message}`);
             }
         }
-        this.getHTMLBody = () => {
-            const emailBody = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Task Approval Reminder</title>
-  <style>
-    body { font-family: Arial, sans-serif; background-color: #f8f9fa; }
-    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);}
-    .button { display: inline-block; padding: 10px 20px; background: #0070c0; color: #fff; text-decoration: none; border-radius: 4px; }
-    .footer { margin-top: 24px; font-size: 12px; color: #888; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Reminder: Task Approval Needed</h2>
-    <p>Dear #[Name],</p>
-    <p>This is a friendly reminder that your approval is required for the following task:</p>
-    <ul>
-      <li><strong>Task Name:</strong> Demo Approval Task</li>
-      <li><strong>Due Date:</strong> #[Due Date]</li>
-    </ul>
-    <p>Please review and approve the task at your earliest convenience.</p>
-    <p>
-      <a href="[Approval Link]" class="button">Approve Task</a>
-    </p>
-    <p>If you have any questions or need additional information, please let us know.</p>
-    <div class="footer">
-      Thank you,<br>
-      Build Process Automation
-    </div>
-  </div>
-</body>
-</html>
-`;
-            return emailBody;
-        }
 
+        // Define an asynchronous function to update log in BTP Scheduler Job Run 
         this.updateJobRunLog = async (bStatus, req, aTaskList) => {
-            // Fetching headers from Request
+            // Fetch headers from the incoming HTTP request object
             const headers = req.headers;
             let oPayload = {};
 
+            // Check if all required SAP Job Scheduler headers are present in the request
             if (headers["x-sap-job-id"] && headers["x-sap-job-run-id"] && headers["x-sap-job-schedule-id"]) {
-                //preapring payload to update status and message in BTP Job Scheduler Run logs
+                // Prepare the payload to update the job run log with status and message
                 oPayload = {
                     "success": bStatus,
                     "message": bStatus ? "Success" : "Error"
                 }
 
-                //Preparing the URL to update job run log.
-                // You can externalize this URL using environment Variables
-                const URL = `https://jobscheduler-rest.cfapps.us10.hana.ondemand.com/scheduler/jobs/${headers["x-sap-job-id"]}/schedules/${headers["x-sap-job-schedule-id"]}/runs/${headers["x-sap-job-run-id"]}`;
+                // Construct the URL for updating the job run log in SAP BTP Job Scheduler
+                // It's a good practice to externalize such URLs using environment variables
+                const URL = `${process.env.JOB_ENDPOINT}/scheduler/jobs/${headers["x-sap-job-id"]}/schedules/${headers["x-sap-job-schedule-id"]}/runs/${headers["x-sap-job-run-id"]}`;
 
-                //Calling a reusable utility function to update Job Run logs
+                // Call a reusable utility function to send the update request to the Job Scheduler
+                // This function likely performs an HTTP PATCH or POST to update the log
                 const oResponse = await oApiUtil.updateJobSchedulerRunLog(URL, oPayload);
+
+                // Log the response from the Job Scheduler for debugging or audit purposes
                 console.log(oResponse);
             }
+            // If required headers are missing, the function does nothing.
         }
 
     }
