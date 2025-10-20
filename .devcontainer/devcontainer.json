@@ -10,15 +10,30 @@
         "vscode": {
             "extensions": [
                 "sapse.vscode-cds",
-                "dbaeumer.vscode-eslint",
-                "humao.rest-client",
-                "qwtel.sqlite-viewer",
-                "mechatroner.rainbow-csv"
+"dbaeumer.vscode-eslint",
+"humao.rest-client",
+"qwtel.sqlite-viewer",
+"mechatroner.rainbow-csv",
+"dbaeumer.vscode-eslint",
+"sapse.vscode-cds",
+"sapse.sap-ux-fiori-tools-extension-pack",
+"sapos.yeoman-ui",
+"hookyqr.beautify",
+"coenraads.bracket-pair-colorizer-2",
+"eamodio.gitlens",
+"yzhang.markdown-all-in-one",
+"fivepointseven.node-version",
+"bengreenier.vscode-node-readme",
+"christian-kohler.path-intellisense",
+"saposs.sap-hana-driver-for-sqltools",
+"sapse.vsc-extension-sa",
+"mtxr.sqltools",
+"pflannery.vscode-versionlens",
+"visualstudioexptteam.vscodeintellicode",
+                "dotjoshjohnson.xml"
             ]
         }
     },
-    "forwardPorts": [
-        4004
-    ],
+    "forwardPorts": [ 4004, 3010 ],
     "remoteUser": "node"
 }
