@@ -1,39 +1,65 @@
 {
-    "name": "Back to basics - SAP CAP - dev container",
-    "build": {
-        "dockerfile": "Dockerfile",
-        "args": {
-            "VARIANT": "20"
-        }
+  "name": "SAP CAP Development Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.eol": "\n",
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "javascript.preferences.quoteStyle": "double",
+        "typescript.preferences.quoteStyle": "double"
+      },
+      "extensions": [
+        "SAPSE.vscode-cds",
+        "SAPSE.sap-ux-fiori-tools-extension-pack",
+        "ms-vscode.vscode-json",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode.vscode-eslint",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense"
+      ]
+    }
+  },
+  "forwardPorts": [4004, 4005, 8080, 8081],
+  "portsAttributes": {
+    "4004": {
+      "label": "CAP Application",
+      "onAutoForward": "notify"
     },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "sapse.vscode-cds",
-"dbaeumer.vscode-eslint",
-"humao.rest-client",
-"qwtel.sqlite-viewer",
-"mechatroner.rainbow-csv",
-"dbaeumer.vscode-eslint",
-"sapse.vscode-cds",
-"sapse.sap-ux-fiori-tools-extension-pack",
-"sapos.yeoman-ui",
-"hookyqr.beautify",
-"coenraads.bracket-pair-colorizer-2",
-"eamodio.gitlens",
-"yzhang.markdown-all-in-one",
-"fivepointseven.node-version",
-"bengreenier.vscode-node-readme",
-"christian-kohler.path-intellisense",
-"saposs.sap-hana-driver-for-sqltools",
-"sapse.vsc-extension-sa",
-"mtxr.sqltools",
-"pflannery.vscode-versionlens",
-"visualstudioexptteam.vscodeintellicode",
-                "dotjoshjohnson.xml"
-            ]
-        }
+    "4005": {
+      "label": "CAP Application (Alt)",
+      "onAutoForward": "notify"
     },
-    "forwardPorts": [ 4004, 3010 ],
-    "remoteUser": "node"
+    "8080": {
+      "label": "UI5 Application",
+      "onAutoForward": "notify"
+    },
+    "8081": {
+      "label": "UI5 Application (Alt)",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "postStartCommand": "echo 'SAP CAP Development Environment is ready!'",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.npm-global,target=/home/vscode/.npm-global,type=bind,consistency=cached"
+  ],
+  "remoteEnv": {
+    "NPM_CONFIG_PREFIX": "/home/vscode/.npm-global",
+    "PATH": "/home/vscode/.npm-global/bin:${containerEnv:PATH}"
+  }
 }
